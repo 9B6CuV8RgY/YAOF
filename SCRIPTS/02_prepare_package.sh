@@ -33,6 +33,8 @@ CONFIG_LRU_GEN=y
 CONFIG_LRU_GEN_ENABLED=y
 # CONFIG_LRU_GEN_STATS is not set
 ' >>./target/linux/generic/config-5.10
+# TCP optimizations
+cp -rf ../PATCH/backport/TCP/* ./target/linux/generic/backport-5.10/
 # ZSTD
 cp -rf ../PATCH/backport/ZSTD/* ./target/linux/generic/hack-5.10/
 # Futex
@@ -115,9 +117,15 @@ rm -rf ./target/linux/rockchip/Makefile
 wget -P target/linux/rockchip/ https://github.com/openwrt/openwrt/raw/openwrt-22.03/target/linux/rockchip/Makefile
 rm -rf ./target/linux/rockchip/patches-5.10/002-net-usb-r8152-add-LED-configuration-from-OF.patch
 rm -rf ./target/linux/rockchip/patches-5.10/003-dt-bindings-net-add-RTL8152-binding-documentation.patch
+cp -rf ../PATCH/rockchip-5.10/* ./target/linux/rockchip/patches-5.10/
 
-mkdir -p target/linux/rockchip/files-5.10/arch/arm64/boot/dts/rockchip
-cp -rf ../PATCH/dts/* ./target/linux/rockchip/files-5.10/arch/arm64/boot/dts/rockchip/
+rm -rf ./package/firmware/linux-firmware/intel.mk
+wget -P package/firmware/linux-firmware/ https://github.com/coolsnowwolf/lede/raw/master/package/firmware/linux-firmware/intel.mk
+rm -rf ./package/firmware/linux-firmware/Makefile
+wget -P package/firmware/linux-firmware/ https://github.com/coolsnowwolf/lede/raw/master/package/firmware/linux-firmware/Makefile
+
+mkdir -p target/linux/rockchip/files-5.10
+cp -rf ../PATCH/files-5.10 ./target/linux/rockchip/
 
 rm -rf ./package/boot/uboot-rockchip
 svn export https://github.com/coolsnowwolf/lede/trunk/package/boot/uboot-rockchip package/boot/uboot-rockchip
@@ -137,9 +145,10 @@ echo '
 ' >>./target/linux/rockchip/armv8/config-5.10
 
 # Dnsmasq
-git clone -b mine --depth 1 https://git.openwrt.org/openwrt/staging/ldir.git
+#git clone -b mine --depth 1 https://git.openwrt.org/openwrt/staging/ldir.git
 rm -rf ./package/network/services/dnsmasq
-cp -rf ./ldir/package/network/services/dnsmasq ./package/network/services/
+#cp -rf ./ldir/package/network/services/dnsmasq ./package/network/services/
+svn export https://github.com/openwrt/openwrt/trunk/package/network/services/dnsmasq package/network/services/dnsmasq
 
 # LRNG
 cp -rf ../PATCH/LRNG/* ./target/linux/generic/hack-5.10/
@@ -189,7 +198,8 @@ svn export https://github.com/immortalwrt/immortalwrt/branches/master/package/ke
 svn export https://github.com/coolsnowwolf/lede/trunk/package/lean/r8125 package/new/r8125
 # igb-intel驱动
 svn export https://github.com/coolsnowwolf/lede/trunk/package/lean/igb-intel package/new/igb-intel
-#sed -i 's,kmod-usb-net-rtl8152,kmod-usb-net-rtl8152-vendor,g' target/linux/rockchip/image/armv8.mk
+# igc-backport
+cp -rf ../PATCH/igc-files-5.10 ./target/linux/x86/files-5.10
 # UPX 可执行软件压缩
 sed -i '/patchelf pkgconf/i\tools-y += ucl upx' ./tools/Makefile
 sed -i '\/autoconf\/compile :=/i\$(curdir)/upx/compile := $(curdir)/ucl/compile' ./tools/Makefile
@@ -227,6 +237,7 @@ svn export https://github.com/immortalwrt/luci/trunk/applications/luci-app-arpbi
 ln -sf ../../../feeds/luci/applications/luci-app-arpbind ./package/feeds/luci/luci-app-arpbind
 # 定时重启
 svn export https://github.com/coolsnowwolf/luci/trunk/applications/luci-app-autoreboot package/lean/luci-app-autoreboot
+sed -i '/LUCI_DEPENDS/d' package/lean/luci-app-autoreboot/Makefile
 # Boost 通用即插即用
 svn export https://github.com/QiuSimons/slim-wrt/branches/main/slimapps/application/luci-app-boostupnp package/new/luci-app-boostupnp
 rm -rf ./feeds/packages/net/miniupnpd
@@ -258,8 +269,8 @@ svn export https://github.com/immortalwrt/packages/trunk/utils/cpulimit feeds/pa
 ln -sf ../../../feeds/packages/utils/cpulimit ./package/feeds/packages/cpulimit
 # 动态DNS
 sed -i '/boot()/,+2d' feeds/packages/net/ddns-scripts/files/etc/init.d/ddns
-svn export https://github.com/immortalwrt/packages/branches/openwrt-21.02/net/ddns-scripts_aliyun feeds/packages/net/ddns-scripts_aliyun
-svn export https://github.com/immortalwrt/packages/branches/openwrt-21.02/net/ddns-scripts_dnspod feeds/packages/net/ddns-scripts_dnspod
+svn export https://github.com/jjm2473/openwrt-third/trunk/ddns-scripts_aliyun feeds/packages/net/ddns-scripts_aliyun
+svn export https://github.com/jjm2473/openwrt-third/trunk/ddns-scripts_dnspod feeds/packages/net/ddns-scripts_dnspod
 svn export https://github.com/QiuSimons/OpenWrt_luci-app/trunk/luci-app-tencentddns package/lean/luci-app-tencentddns
 svn export https://github.com/kenzok8/openwrt-packages/trunk/luci-app-aliddns feeds/luci/applications/luci-app-aliddns
 ln -sf ../../../feeds/luci/applications/luci-app-aliddns ./package/feeds/luci/luci-app-aliddns
@@ -399,7 +410,7 @@ svn export https://github.com/immortalwrt/luci/branches/openwrt-18.06/applicatio
 # ShadowsocksR Plus+ 依赖
 rm -rf ./feeds/packages/net/shadowsocks-libev
 svn export https://github.com/coolsnowwolf/packages/trunk/net/shadowsocks-libev package/lean/shadowsocks-libev
-svn export https://github.com/coolsnowwolf/packages/trunk/net/redsocks2 package/lean/redsocks2
+svn export https://github.com/fw876/helloworld/trunk/redsocks2 package/lean/redsocks2
 svn export https://github.com/coolsnowwolf/lede/trunk/package/lean/srelay package/lean/srelay
 svn export https://github.com/fw876/helloworld/trunk/trojan package/lean/trojan
 svn export https://github.com/fw876/helloworld/trunk/tcping package/lean/tcping
@@ -437,6 +448,7 @@ svn export https://github.com/openwrt/packages/trunk/net/v2raya feeds/packages/n
 ln -sf ../../../feeds/packages/net/v2raya ./package/feeds/packages/v2raya
 # socat
 svn export https://github.com/Lienol/openwrt-package/trunk/luci-app-socat package/new/luci-app-socat
+sed -i '/socat\.config/d' feeds/packages/net/socat/Makefile
 # 订阅转换
 svn export https://github.com/immortalwrt/packages/trunk/net/subconverter feeds/packages/net/subconverter
 #wget https://github.com/immortalwrt/packages/raw/b7b4499/net/subconverter/Makefile -O feeds/packages/net/subconverter/Makefile
@@ -562,8 +574,7 @@ CONFIG_NFSD=y
 ' >>./target/linux/generic/config-5.10
 ### Shortcut-FE 部分 ###
 # Patch Kernel 以支持 Shortcut-FE
-#wget -P target/linux/generic/hack-5.10/ https://github.com/coolsnowwolf/lede/raw/master/target/linux/generic/hack-5.10/953-net-patch-linux-kernel-to-support-shortcut-fe.patch
-wget -P target/linux/generic/hack-5.10/ https://github.com/coolsnowwolf/lede/raw/2b04e06/target/linux/generic/hack-5.10/953-net-patch-linux-kernel-to-support-shortcut-fe.patch
+wget -P target/linux/generic/hack-5.10/ https://github.com/coolsnowwolf/lede/raw/master/target/linux/generic/hack-5.10/953-net-patch-linux-kernel-to-support-shortcut-fe.patch
 # Patch LuCI 以增添 Shortcut-FE 开关
 patch -p1 < ../PATCH/firewall/luci-app-firewall_add_sfe_switch.patch
 # Shortcut-FE 相关组件
